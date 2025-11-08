@@ -1,7 +1,7 @@
 {
   "domain": "cfa_victoria_fire_danger",
   "name": "CFA Victoria Fire Danger",
-  "version": "1.0.0",
+  "version": "v0.2.0-alpha",
   "codeowners": ["@BigByte76"],
   "config_flow": true,
   "documentation": "https://github.com/BigByte76/home-assistant-cfa-victoria-fire-danger",
