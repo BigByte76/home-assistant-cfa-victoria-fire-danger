@@ -10,7 +10,11 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
 )
 
-from custom_components.cfa_victoria_fire_danger.const import CONF_DISTRICT, DOMAIN
+from custom_components.cfa_victoria_fire_danger.const import (
+    CONF_DISTRICT,
+    DISTRICT_MAP_URL,
+    DOMAIN,
+)
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -27,6 +31,7 @@ async def test_user_flow(hass: HomeAssistant) -> None:
         DOMAIN, context={"source": SOURCE_USER}
     )
     assert result["type"] is FlowResultType.FORM
+    assert result["description_placeholders"] == {"district_map_url": DISTRICT_MAP_URL}
 
     with patch(SETUP_ENTRY, return_value=True):
         result = await hass.config_entries.flow.async_configure(

@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Choose a CFA fire district",
-        "description": "Not sure which district you are in? See the [CFA district map](https://www.cfa.vic.gov.au/warnings-and-restrictions/find-your-fire-weather-district).",
+        "description": "Not sure which district you are in? See the [CFA district map]({district_map_url}).",
         "data": {
           "district": "Fire district"
         },

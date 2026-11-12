@@ -16,7 +16,7 @@ from homeassistant.helpers.selector import (
 )
 
 from .api import CFAClient, CFAConnectionError, CFAParseError
-from .const import CONF_DISTRICT, DISTRICTS, DOMAIN
+from .const import CONF_DISTRICT, DISTRICT_MAP_URL, DISTRICTS, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -69,4 +69,5 @@ class CFAConfigFlow(ConfigFlow, domain=DOMAIN):
                 STEP_USER_SCHEMA, user_input
             ),
             errors=errors,
+            description_placeholders={"district_map_url": DISTRICT_MAP_URL},
         )

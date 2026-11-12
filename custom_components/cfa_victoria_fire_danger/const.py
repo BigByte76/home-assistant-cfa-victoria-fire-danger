@@ -40,3 +40,5 @@ DISTRICT_PAGE_URL: Final = (
     "fire-bans-ratings-and-restrictions/total-fire-bans-fire-danger-ratings/"
     "{page_slug}-fire-district"
 )
+
+DISTRICT_MAP_URL: Final = "https://www.cfa.vic.gov.au/warnings-and-restrictions/find-your-fire-weather-district"
