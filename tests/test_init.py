@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+from freezegun.api import FrozenDateTimeFactory
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_fire_time_changed,
+)
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
 )
 
+from custom_components.cfa_victoria_fire_danger import sensor as sensor_module
 from custom_components.cfa_victoria_fire_danger.const import CONF_DISTRICT, DOMAIN
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
@@ -29,6 +34,7 @@ async def test_setup_and_entities(
     assert today.state == "moderate"
     assert today.attributes["date"] == "2026-11-12"
     assert today.attributes["issued_at"] == "2026-11-12T05:30:00+11:00"
+    assert today.attributes["level"] == 1
     assert (
         hass.states.get("sensor.cfa_central_fire_danger_rating_tomorrow").state
         == "no_rating"
@@ -82,3 +88,62 @@ async def test_migrate_v1_entry(
     assert entry.data == {CONF_DISTRICT: "northcentral"}
     assert entry.unique_id == "northcentral"
     assert entry.title == "North Central"
+
+
+@pytest.mark.freeze_time("2026-11-12 23:59:30+11:00")
+async def test_day_rollover_at_midnight(
+    hass: HomeAssistant,
+    central_feed: AiohttpClientMocker,
+    config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Entities move to the next day at midnight without waiting for a poll."""
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    today_id = "sensor.cfa_central_fire_danger_rating_today"
+    assert hass.states.get(today_id).attributes["date"] == "2026-11-12"
+    assert hass.states.get(today_id).state == "moderate"
+
+    freezer.move_to("2026-11-13 00:00:02+11:00")
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+    today = hass.states.get(today_id)
+    assert today.attributes["date"] == "2026-11-13"
+    assert today.state == "no_rating"
+    assert (
+        hass.states.get("sensor.cfa_central_fire_danger_rating_tomorrow").attributes[
+            "date"
+        ]
+        == "2026-11-14"
+    )
+    # Served from cached data: the feed was only fetched once.
+    assert central_feed.call_count == 1
+
+
+@pytest.mark.freeze_time(FIXTURE_NOW)
+async def test_unknown_rating_logged_once(
+    hass: HomeAssistant,
+    aioclient_mock: AiohttpClientMocker,
+    config_entry: MockConfigEntry,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """An unrecognised rating is unknown and warned about only once."""
+    sensor_module._WARNED_RATINGS.clear()
+    aioclient_mock.get(
+        CENTRAL_URL,
+        content=b"""<rss><channel><item><title>Thursday, 12 November 2026</title>
+        <description>&lt;p&gt;Central: SEVERE&lt;/p&gt;</description>
+        </item></channel></rss>""",
+    )
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    today = hass.states.get("sensor.cfa_central_fire_danger_rating_today")
+    assert today.state == "unknown"
+    assert today.attributes["level"] is None
+
+    await config_entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+
+    assert caplog.text.count("Unknown fire danger rating 'severe'") == 1

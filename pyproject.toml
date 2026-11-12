@@ -1,6 +1,6 @@
 [project]
 name = "cfa-victoria-fire-danger"
-version = "2.0.0"
+version = "2.0.1"
 description = "Home Assistant custom integration for CFA Victoria fire danger ratings"
 requires-python = ">=3.14.2"
 
@@ -26,6 +26,8 @@ ignore = ["D202", "D203", "D213", "E501", "PLR2004"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D103", "PLR0913"]
+# Claude Code tooling scripts, not shipped with the integration.
+".claude/*" = ["D", "PLR0911", "PLR0912", "PLR0915"]
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true

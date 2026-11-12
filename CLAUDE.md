@@ -8,13 +8,15 @@ A Home Assistant custom integration, distributed through HACS, that reports CFA 
 
 ## Commands
 
-Uses `uv`. Tests need Python 3.14.2+, as required by `pytest-homeassistant-custom-component`; uv downloads it if needed. The test harness lags HA releases by a few weeks. To check a newer HA than the harness supports, run a real `hass` instance: create a venv with `homeassistant==<version>`, make a config dir with the integration symlinked into `custom_components` and `api:`, `onboarding:`, `config:` in `configuration.yaml`, then onboard a user and drive `/api/config/config_entries/flow`.
+Uses `uv`. Tests need Python 3.14.2+, as required by `pytest-homeassistant-custom-component`; uv downloads it if needed. The test harness lags HA releases by a few weeks; use `/ha-live-test` for newer versions.
 
 ```sh
 uv run --group test pytest                              # all tests
 uv run --group test pytest tests/test_api.py::test_parse_central_feed  # one test
 uv run --group lint ruff check --fix . && uv run --group lint ruff format .
 ```
+
+Run `/ha-live-test <version>` (`.claude/skills/ha-live-test/`) to test on a real Home Assistant server, and `/release <version>` to cut a release. A PostToolUse hook (`.claude/hooks/post_edit.py`) runs ruff on edited Python files and blocks edits that make `strings.json` and `translations/en.json` differ.
 
 CI (`.github/workflows/validate.yml`) runs hassfest, HACS validation, ruff and pytest.
 
@@ -24,8 +26,8 @@ Code is in `custom_components/cfa_victoria_fire_danger/`.
 
 - `api.py`: feed client and parser. It has **no Home Assistant imports**, so keep it that way and test it directly. The feed URL is `https://www.cfa.vic.gov.au/cfa/rssfeed/{slug}-firedistrict_rss.xml`. Each `<item>` title is a date ("Thursday, 12 November 2026"). The item's HTML-escaped `<description>` holds the Total Fire Ban sentence ("… is not currently a day of Total Fire Ban"), a line `<District name>: <RATING>` and "forecast issued at: …". The feed mixes 12-hour and 24-hour time ("16:00 PM"). Undated items, such as municipal restrictions, are skipped. `parse_feed` returns `dict[date, DayForecast]`.
 - `const.py`: `DISTRICTS` maps feed slug → district name. The name must exactly match the name in the feed text, because the rating line is matched against it. `RATINGS` holds the enum sensor options.
-- `coordinator.py`: `CFACoordinator` polls every 15 minutes and wraps `CFAError` in a translated `UpdateFailed`. `CFAConfigEntry = ConfigEntry[CFACoordinator]` and the coordinator lives in `entry.runtime_data`.
-- `entity.py`: base `CFAEntity` (a `CoordinatorEntity`) with a `day_offset`. It picks the forecast by **Melbourne local date** rather than feed position, and reports unavailable when the feed doesn't cover that day. `sensor.py` (enum rating) and `binary_sensor.py` (Total Fire Ban) are thin subclasses.
+- `coordinator.py`: `CFACoordinator` polls every 15 minutes and wraps `CFAError` in a translated `UpdateFailed`. `CFAConfigEntry = ConfigEntry[CFACoordinator]` and the coordinator lives in `entry.runtime_data`. `async_track_day_rollover` calls `async_update_listeners()` just after each Melbourne midnight, because entities choose their day only when they write state.
+- `entity.py`: base `CFAEntity` (a `CoordinatorEntity`) with a `day_offset`. It picks the forecast by **Melbourne local date** rather than feed position, and reports unavailable when the feed doesn't cover that day. `sensor.py` (enum rating, plus a numeric `level` attribute = index in `RATINGS`, so keep `RATINGS` in severity order) and `binary_sensor.py` (Total Fire Ban) are thin subclasses.
 - `config_flow.py`: one step that validates the feed. The district slug is the config entry unique ID. Config entry **VERSION 2**. `async_migrate_entry` in `__init__.py` converts v1 entries, which stored the display name, to slugs.
 - `brand/icon.png` and `icon@2x.png` are local brand images, shown by HA 2026.3+ and accepted by the HACS brands check. They were generated as an original flame; never use CFA or Home Assistant logos.
 - Total Fire Ban detection: no archived feed (2022–2026) shows a declared-ban day, so `_is_total_fire_ban` treats any "day of Total Fire Ban" sentence without "not" as a ban. The verbatim sentence is exposed as the binary sensors' `statement` attribute so users can check it.

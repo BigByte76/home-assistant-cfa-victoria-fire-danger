@@ -53,6 +53,9 @@
           },
           "issued_at": {
             "name": "Issued at"
+          },
+          "level": {
+            "name": "Level"
           }
         }
       },
@@ -71,6 +74,9 @@
           },
           "issued_at": {
             "name": "Issued at"
+          },
+          "level": {
+            "name": "Level"
           }
         }
       }

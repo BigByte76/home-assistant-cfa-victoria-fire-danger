@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.1 - 2026-11-12
+
+### Fixed
+- "Today" and "tomorrow" now switch over at midnight in Victoria. Before, they kept showing the previous day for up to 15 minutes after midnight.
+- An unrecognised fire danger rating is now logged once, instead of on every update.
+
+### Added
+- A `level` attribute on the fire danger rating sensors: 0 no rating, 1 moderate, 2 high, 3 extreme, 4 catastrophic. Automations can use it in a numeric state condition, e.g. "High or above", without templates.
+
+### Changed
+- README: the example automation now also fires as soon as a Total Fire Ban is declared. It uses the `level` attribute, your phone's notify action, and `state_translated()` for the rating name.
+- README: debug logging is now turned on from the integration page, not `configuration.yaml`.
+
 ## 2.0.0 - 2026-11-12
 
 Version 2.0 is a rewrite. Earlier versions couldn't start: setup failed with `Error fetching data: not well-formed (invalid token)`.
