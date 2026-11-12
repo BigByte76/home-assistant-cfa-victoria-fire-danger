@@ -69,47 +69,55 @@ The rating sensors use the [Australian Fire Danger Rating System](https://www.cf
 | --- | --- | --- |
 | `date` | All entities | The date the forecast applies to |
 | `issued_at` | All entities | When the Bureau of Meteorology issued the forecast |
+| `level` | Fire danger rating entities | The rating as a number: 0 no rating, 1 moderate, 2 high, 3 extreme, 4 catastrophic |
 | `statement` | Total Fire Ban entities | CFA's Total Fire Ban wording for the day, word for word |
 
-An entity shows as **unavailable** if the CFA feed can't be reached, or if the feed doesn't include that day yet. This can happen for a few minutes after midnight.
+"Today" and "tomorrow" switch over at midnight in Victoria. An entity shows as **unavailable** if the CFA feed can't be reached, or if the feed doesn't include that day yet.
 
 ## 🤖 Example automation
-Send a notification at 7 pm when tomorrow is a Total Fire Ban day or the rating is Extreme or higher:
+This automation sends a notification when tomorrow is a Total Fire Ban day, or when its rating is High or above. It runs at 7 pm, and also straight away if a ban is declared later in the evening. Create it in **Settings → Automations & scenes → Create automation**, then choose **Edit in YAML** from the ⋮ menu and paste:
 
 ```yaml
-automation:
-  - alias: "Fire danger warning for tomorrow"
-    triggers:
-      - trigger: time
-        at: "19:00:00"
+alias: Fire danger warning for tomorrow
+mode: single
+triggers:
+  - trigger: time
+    at: "19:00:00"
+  - trigger: state
+    entity_id: binary_sensor.cfa_central_total_fire_ban_tomorrow
+    to: "on"
+    # Ignore the sensor coming back after a restart or an outage.
+    not_from:
+      - unavailable
+      - unknown
+conditions:
+  - condition: or
     conditions:
-      - condition: or
-        conditions:
-          - condition: state
-            entity_id: binary_sensor.cfa_central_total_fire_ban_tomorrow
-            state: "on"
-          - condition: state
-            entity_id: sensor.cfa_central_fire_danger_rating_tomorrow
-            state:
-              - extreme
-              - catastrophic
-    actions:
-      - action: notify.notify
-        data:
-          title: "Fire danger tomorrow"
-          message: >
-            Rating: {{ states('sensor.cfa_central_fire_danger_rating_tomorrow') | replace('_', ' ') | title }}.
-            {{ state_attr('binary_sensor.cfa_central_total_fire_ban_tomorrow', 'statement') }}
+      - condition: state
+        entity_id: binary_sensor.cfa_central_total_fire_ban_tomorrow
+        state: "on"
+      - condition: numeric_state
+        entity_id: sensor.cfa_central_fire_danger_rating_tomorrow
+        attribute: level
+        above: 1
+actions:
+  - action: notify.mobile_app_your_phone
+    data:
+      title: Fire danger tomorrow
+      message: >
+        Rating: {{ state_translated('sensor.cfa_central_fire_danger_rating_tomorrow') }}.
+        {{ state_attr('binary_sensor.cfa_central_total_fire_ban_tomorrow', 'statement') }}
 ```
+
+Before saving:
+- Replace `central` in the entity IDs with your district.
+- Replace `notify.mobile_app_your_phone` with your phone's notify action. Search for `notify.mobile_app` in **Settings → Automations & scenes → Create automation → Add action**.
+
+The `level` condition is true for High (2) and above. Use `above: 2` for Extreme and above.
 
 ## 🛠 Troubleshooting
 - **Download diagnostics:** go to **Settings → Devices & services → CFA Victoria Fire Danger**, then the ⋮ menu → **Download diagnostics**. Attach the file to bug reports.
-- **Turn on debug logging:** add this to `configuration.yaml`:
-  ```yaml
-  logger:
-    logs:
-      custom_components.cfa_victoria_fire_danger: debug
-  ```
+- **Turn on debug logging:** go to **Settings → Devices & services → CFA Victoria Fire Danger** and select **Enable debug logging**. Reproduce the problem, then select **Disable debug logging** to download the log.
 - **Check a Total Fire Ban result:** the `statement` attribute shows CFA's original sentence. If it disagrees with the binary sensor's state, please [open an issue](https://github.com/BigByte76/home-assistant-cfa-victoria-fire-danger/issues) and include the statement.
 
 ## 🗑 Removal
