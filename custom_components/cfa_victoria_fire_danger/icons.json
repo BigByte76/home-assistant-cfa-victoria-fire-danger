@@ -1,0 +1,42 @@
+{
+  "entity": {
+    "sensor": {
+      "fire_danger_rating_today": {
+        "default": "mdi:fire",
+        "state": {
+          "no_rating": "mdi:fire-off",
+          "moderate": "mdi:fire",
+          "high": "mdi:fire",
+          "extreme": "mdi:fire-alert",
+          "catastrophic": "mdi:fire-alert"
+        }
+      },
+      "fire_danger_rating_tomorrow": {
+        "default": "mdi:fire",
+        "state": {
+          "no_rating": "mdi:fire-off",
+          "moderate": "mdi:fire",
+          "high": "mdi:fire",
+          "extreme": "mdi:fire-alert",
+          "catastrophic": "mdi:fire-alert"
+        }
+      }
+    },
+    "binary_sensor": {
+      "total_fire_ban_today": {
+        "default": "mdi:fire-alert",
+        "state": {
+          "on": "mdi:fire-alert",
+          "off": "mdi:fire-off"
+        }
+      },
+      "total_fire_ban_tomorrow": {
+        "default": "mdi:fire-alert",
+        "state": {
+          "on": "mdi:fire-alert",
+          "off": "mdi:fire-off"
+        }
+      }
+    }
+  }
+}

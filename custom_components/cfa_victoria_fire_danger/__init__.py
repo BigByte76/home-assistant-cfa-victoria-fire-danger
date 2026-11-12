@@ -1,46 +1,54 @@
-"""CFA Victoria Fire Danger custom integration."""
-from datetime import timedelta
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.helpers.entity import Entity
-import aiohttp
-import xml.etree.ElementTree as ET
+"""The CFA Victoria Fire Danger integration."""
+
+from __future__ import annotations
+
 import logging
 
-_LOGGER = logging.getLogger(__name__)
-SCAN_INTERVAL = timedelta(minutes=15)
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant
 
-async def async_setup_entry(hass, entry):
-    district = entry.data["district"]
-    coordinator = CFAVictoriaCoordinator(hass, district)
+from .const import CONF_DISTRICT, DISTRICTS
+from .coordinator import CFAConfigEntry, CFACoordinator
+
+_LOGGER = logging.getLogger(__name__)
+
+PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR]
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: CFAConfigEntry) -> bool:
+    """Set up CFA Victoria Fire Danger from a config entry."""
+    coordinator = CFACoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
-    hass.data.setdefault("cfa_victoria_fire_danger", {})[entry.entry_id] = coordinator
-    hass.config_entries.async_setup_platforms(entry, ["sensor"])
+    entry.runtime_data = coordinator
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
-async def async_unload_entry(hass, entry):
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, ["sensor"])
-    if unload_ok:
-        hass.data["cfa_victoria_fire_danger"].pop(entry.entry_id)
-    return unload_ok
 
-class CFAVictoriaCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, district):
-        super().__init__(hass, _LOGGER, name="CFA Victoria Fire Danger", update_interval=SCAN_INTERVAL)
-        self.district = district
+async def async_unload_entry(hass: HomeAssistant, entry: CFAConfigEntry) -> bool:
+    """Unload a config entry."""
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
-    async def _async_update_data(self):
-        url = f"https://www.cfa.vic.gov.au/feeds/firedangerrating_{self.district}.xml"
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url) as resp:
-                    text = await resp.text()
-                    root = ET.fromstring(text)
-                    items = root.findall(".//item")
-                    today, tomorrow = None, None
-                    if items:
-                        today = items[0].findtext("title")
-                        if len(items) > 1:
-                            tomorrow = items[1].findtext("title")
-                    return {"today": today, "tomorrow": tomorrow}
-        except Exception as err:
-            raise UpdateFailed(f"Error fetching data: {err}") from err
+
+async def async_migrate_entry(hass: HomeAssistant, entry: CFAConfigEntry) -> bool:
+    """Migrate old config entries."""
+    if entry.version > 2:
+        # Downgraded from a future version.
+        return False
+
+    if entry.version == 1:
+        # Version 1 stored the district display name, e.g. "North Central".
+        name = entry.data.get(CONF_DISTRICT)
+        slug = next((s for s, n in DISTRICTS.items() if n == name), None)
+        if slug is None:
+            _LOGGER.error("Cannot migrate config entry with unknown district %s", name)
+            return False
+        hass.config_entries.async_update_entry(
+            entry,
+            data={CONF_DISTRICT: slug},
+            title=DISTRICTS[slug],
+            unique_id=slug,
+            version=2,
+        )
+        _LOGGER.debug("Migrated config entry %s to version 2", entry.entry_id)
+
+    return True

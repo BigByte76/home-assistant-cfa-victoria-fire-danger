@@ -1,7 +1,6 @@
 {
   "name": "CFA Victoria Fire Danger",
-  "render_readme": true,
-  "domains": ["sensor"],
   "country": "AU",
-  "homeassistant": "2024.6.0"
+  "homeassistant": "2026.2.3",
+  "render_readme": true
 }

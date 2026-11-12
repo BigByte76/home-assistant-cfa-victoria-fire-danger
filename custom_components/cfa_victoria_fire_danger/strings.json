@@ -1,0 +1,114 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Choose a CFA fire district",
+        "description": "Not sure which district you are in? See the [CFA district map](https://www.cfa.vic.gov.au/warnings-and-restrictions/find-your-fire-weather-district).",
+        "data": {
+          "district": "Fire district"
+        },
+        "data_description": {
+          "district": "The CFA fire district to report fire danger ratings and Total Fire Bans for."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the CFA feed",
+      "invalid_response": "The CFA feed returned data that could not be read",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This fire district is already configured"
+    }
+  },
+  "selector": {
+    "district": {
+      "options": {
+        "central": "Central",
+        "eastgippsland": "East Gippsland",
+        "mallee": "Mallee",
+        "northcentral": "North Central",
+        "northeast": "North East",
+        "northerncountry": "Northern Country",
+        "southwest": "South West",
+        "westandsouthgippsland": "West and South Gippsland",
+        "wimmera": "Wimmera"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "fire_danger_rating_today": {
+        "name": "Fire danger rating today",
+        "state": {
+          "no_rating": "No rating",
+          "moderate": "Moderate",
+          "high": "High",
+          "extreme": "Extreme",
+          "catastrophic": "Catastrophic"
+        },
+        "state_attributes": {
+          "date": {
+            "name": "Date"
+          },
+          "issued_at": {
+            "name": "Issued at"
+          }
+        }
+      },
+      "fire_danger_rating_tomorrow": {
+        "name": "Fire danger rating tomorrow",
+        "state": {
+          "no_rating": "No rating",
+          "moderate": "Moderate",
+          "high": "High",
+          "extreme": "Extreme",
+          "catastrophic": "Catastrophic"
+        },
+        "state_attributes": {
+          "date": {
+            "name": "Date"
+          },
+          "issued_at": {
+            "name": "Issued at"
+          }
+        }
+      }
+    },
+    "binary_sensor": {
+      "total_fire_ban_today": {
+        "name": "Total fire ban today",
+        "state_attributes": {
+          "date": {
+            "name": "Date"
+          },
+          "issued_at": {
+            "name": "Issued at"
+          },
+          "statement": {
+            "name": "Statement"
+          }
+        }
+      },
+      "total_fire_ban_tomorrow": {
+        "name": "Total fire ban tomorrow",
+        "state_attributes": {
+          "date": {
+            "name": "Date"
+          },
+          "issued_at": {
+            "name": "Issued at"
+          },
+          "statement": {
+            "name": "Statement"
+          }
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "update_failed": {
+      "message": "Error fetching CFA fire danger data: {error}"
+    }
+  }
+}
